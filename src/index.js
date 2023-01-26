@@ -1,5 +1,5 @@
 import { fromEvent } from "rxjs";
-import { map, mergeAll } from "rxjs/operators";
+import { map, mergeAll, takeUntil } from "rxjs/operators";
 
 /*=== Variables === */
 const canvas = document.getElementById("reactive-canvas");
@@ -7,8 +7,10 @@ const cursorPosition = {x:0, y:0};
 
 /* === Observables === */
 const onMouseDown$ = fromEvent(canvas, "mousedown"); // Cuando se empieza a presionar el click sobre el canvas.
-const onMouseMove$ = fromEvent(canvas, "mousemove"); // Cuando se empieza a arastrar el mouse.
 const onMouseUp$ = fromEvent(canvas, "mouseup"); // Cuando se deja de sostener el click sobre el mouse.
+const onMouseMove$ = fromEvent(canvas, "mousemove").pipe(
+    takeUntil(onMouseUp$) // Al momento de soltar el click del mouse dejar de pintar.
+); // Cuando se empieza a arastrar el mouse.
 /* A través de mergeAll() empezamos a enviar los enventos de onMouseMove$ mapeados, para luego enviarlos en un observable
 de salida al observador paintStroke */
 const startPaint$ = onMouseDown$.pipe(
@@ -19,6 +21,8 @@ const startPaint$ = onMouseDown$.pipe(
 /* === Características del canvas para hacer una línea === */
 const canvasContext = canvas.getContext("2d"); // Objeto que permite gráficar sobre todo el canvas.
 canvasContext.lineWidth = 4; // Ancho de línea.
+canvasContext.lineCap = "round"; // Cuando empice la línea sea redondo.
+canvasContext.lineJoin = "round"; // Donde termine la línea sea redondo.
 canvasContext.strokeStyle = "white"; // Color de línea.
 
 const updateCursorPosition = (event) => {
