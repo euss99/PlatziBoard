@@ -1,8 +1,9 @@
-import { fromEvent } from "rxjs";
+import { fromEvent, merge } from "rxjs";
 import { map, mergeAll, takeUntil } from "rxjs/operators";
 
 /*=== Variables === */
 const canvas = document.getElementById("reactive-canvas");
+const restartButton = document.getElementById("restart-button");
 const cursorPosition = {x:0, y:0};
 
 /* === Observables === */
@@ -17,6 +18,12 @@ const startPaint$ = onMouseDown$.pipe(
     map(() => onMouseMove$),
     mergeAll()
 );
+
+const onLoadWindow$ = fromEvent(window, "load");
+const onRestartClick$ = fromEvent(restartButton, "click");
+
+// Función para escuchar dos eventos en solamente una operación a nivel de código.
+const restartWhiteBoard$ = merge(onLoadWindow$, onRestartClick$);
 
 /* === Características del canvas para hacer una línea === */
 const canvasContext = canvas.getContext("2d"); // Objeto que permite gráficar sobre todo el canvas.
@@ -43,5 +50,14 @@ const paintStroke = (event) => {
 
 /* === Suscripciones === */
 onMouseDown$.subscribe();
-onMouseDown$.subscribe(updateCursorPosition);
-startPaint$.subscribe(paintStroke);
+let onMouseDownSubscription = onMouseDown$.subscribe(updateCursorPosition);
+let startPaintSubscription = startPaint$.subscribe(paintStroke);
+
+// Subscripción para borrar el dibujo
+restartWhiteBoard$.subscribe(() => {
+    onMouseDownSubscription.unsubscribe();
+    startPaintSubscription.unsubscribe();
+    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    onMouseDownSubscription = onMouseDown$.subscribe(updateCursorPosition);
+    startPaintSubscription = startPaint$.subscribe(paintStroke);
+});
